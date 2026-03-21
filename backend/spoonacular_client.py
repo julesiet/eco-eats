@@ -43,3 +43,4 @@ def get_recipes_by_ingredients(ingredients: list[str]) -> list[dict]:
     else:
         print(f"Spoonacular Error: {response.status_code}")
         return []
+    

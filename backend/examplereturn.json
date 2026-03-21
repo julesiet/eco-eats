@@ -1,0 +1,40 @@
+{
+  "total_kg_co2": 2.05,
+  "audit_breakdown": [
+    {
+      "name": "orange",
+      "kg_co2": 0.35
+    },
+    {
+      "name": "cheese",
+      "kg_co2": 1.35
+    },
+    {
+      "name": "bread",
+      "kg_co2": 0.35
+    }
+  ],
+  "recipe_ideas": [
+    {
+      "id": 664643,
+      "title": "Vegetarian Burgers",
+      "image_url": "https://img.spoonacular.com/recipes/664643-312x231.jpg",
+      "estimated_co2": 1.2,
+      "swap_note": "You save 0.8 kg CO2! Equal to the carbon captured by 0.14 tree seedlings."
+    },
+    {
+      "id": 651190,
+      "title": "Masala-Tofu Burger",
+      "image_url": "https://img.spoonacular.com/recipes/651190-312x231.jpg",
+      "estimated_co2": 0.9,
+      "swap_note": "You save 1.1 kg CO2! That's like driving 4.6 km in a gas car!"
+    },
+    {
+      "id": 652861,
+      "title": "My Favourite Ricotta Sandwich",
+      "image_url": "https://img.spoonacular.com/recipes/652861-312x231.jpg",
+      "estimated_co2": 1.4,
+      "swap_note": "You save 0.7 kg CO2! That's like driving 2.6 km in a gas car!"
+    }
+  ]
+}

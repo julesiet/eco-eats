@@ -16,6 +16,7 @@ Output: An Eco-Analysis Object (CO2 values and a text recommendation).
 """
 import os
 import json
+import random
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -27,8 +28,22 @@ client = OpenAI(
     base_url="https://api.asi1.ai/v1"
 )
 
+def get_eco_equivalent(kg_saved: float) -> str:
+    """Calculates real-world equivalents for CO2 savings."""
+    # 1 kg CO2 ≈ 4 km driving a gas car
+    km_driven = round(kg_saved * 4, 1)
+    # 1 kg CO2 ≈ 122 smartphone charges
+    phone_charges = int(kg_saved * 122)
+    
+    options = [
+        f"That's like driving {abs(km_driven)} km in a gas car!",
+        f"Equivalent to charging a smartphone {abs(phone_charges)} times.",
+        f"That's like powering a house for {abs(round(kg_saved * 0.15, 2))} days!",
+        f"Equal to the weight of {abs(int(kg_saved * 0.1))} large bags of landfill waste recycled instead of burned."
+    ]
+    return random.choice(options)
+
 def audit_ingredients(ingredients: list[str]) -> dict:
-    # --- DUMMY DATA MODE ---
     if ASI_KEY == "your_asi_one_key_here" or not ASI_KEY:
         return {
             "total_kg_co2": 29.6,
@@ -36,7 +51,6 @@ def audit_ingredients(ingredients: list[str]) -> dict:
             "green_search_list": ["black beans" if "beef" in i.lower() else i for i in ingredients]
         }
 
-    # --- REAL API MODE ---
     system_prompt = """
     You are an expert environmental scientist.
     1. Calculate the CO2 emissions in kg for the provided ingredients.
@@ -48,14 +62,10 @@ def audit_ingredients(ingredients: list[str]) -> dict:
         "green_search_list": ["string", "string"]
     }
     """
-    
     try:
         response = client.chat.completions.create(
             model="asi1-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Ingredients: {', '.join(ingredients)}"}
-            ],
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": f"Ingredients: {', '.join(ingredients)}"}],
             response_format={"type": "json_object"}
         )
         return json.loads(response.choices[0].message.content)
@@ -63,41 +73,40 @@ def audit_ingredients(ingredients: list[str]) -> dict:
         print(f"AI Error: {e}")
         return {"total_kg_co2": 0.0, "audit_breakdown": [], "green_search_list": ingredients}
 
-
-def estimate_recipe_emissions(recipes: list[dict]) -> list[dict]:
-    # --- DUMMY DATA MODE ---
+def estimate_recipe_emissions(recipes: list[dict], original_total: float) -> list[dict]:
     if ASI_KEY == "your_asi_one_key_here" or not ASI_KEY:
         for r in recipes:
-            r["estimated_co2"] = 3.5  # Fake low score
-            r["swap_note"] = "Plant-based swap!"
+            saved = max(0, original_total - 3.5)
+            r["estimated_co2"] = 3.5 
+            r["swap_note"] = f"You save {saved:.1f} kg CO2! {get_eco_equivalent(saved)}"
         return recipes
 
-    # --- REAL API MODE ---
-    # We ask the AI to quickly assign a CO2 score based on the title of the recipes
     titles = [r["title"] for r in recipes]
-    system_prompt = """
-    Estimate the total CO2 emissions (kg) for these recipe titles. 
-    Add a short 'swap_note' praising the green ingredients.
+
+    system_prompt = f"""
+    Estimate the CO2 (kg) for these recipe titles. Compare to the user's original meal of {original_total}kg.
     Return ONLY JSON:
-    {"estimates": [{"title": "string", "estimated_co2": float, "swap_note": "string"}]}
+    {{"estimates": [{{"title": "string", "estimated_co2": float, "kg_saved": float}}]}}
     """
     
     try:
         response = client.chat.completions.create(
             model="asi1-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Recipes: {', '.join(titles)}"}
-            ],
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": f"Recipes: {', '.join(titles)}"}],
             response_format={"type": "json_object"}
         )
         ai_data = json.loads(response.choices[0].message.content).get("estimates", [])
         
-        # Merge the AI scores back into the recipe objects
         for recipe in recipes:
             match = next((item for item in ai_data if item["title"] == recipe["title"]), None)
-            recipe["estimated_co2"] = match["estimated_co2"] if match else 5.0
-            recipe["swap_note"] = match["swap_note"] if match else "Great eco-friendly choice."
+            if match:
+                est = match["estimated_co2"]
+                saved = match["kg_saved"]
+                recipe["estimated_co2"] = est
+                recipe["swap_note"] = f"You save {abs(saved):.1f} kg CO2! {get_eco_equivalent(saved)}"
+            else:
+                recipe["estimated_co2"] = 5.0
+                recipe["swap_note"] = "Great eco-friendly choice."
         
         return recipes
     except Exception as e:
