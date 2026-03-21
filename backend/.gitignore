@@ -1,0 +1,21 @@
+# Secrets and Credentials
+.env
+*.env
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Python Bytecode (Generated automatically by Python)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDE Settings (Optional, but keeps things clean)
+.vscode/
+.idea/
