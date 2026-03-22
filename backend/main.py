@@ -12,33 +12,30 @@ Output: Returns a final JSON Response to the Frontend.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import schemas
-import spoonacular_client
-import agent_service
+import schemas, spoonacular_client, agent_service
 
-app = FastAPI(title="Eco-Eats API")
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"], 
-    allow_credentials=True,
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.post("/api/audit", response_model=schemas.DiscoveryResponse)
 async def audit_and_discover(request: schemas.IngredientRequest):
+    # 1. Audit current ingredients
     eco_data = agent_service.audit_ingredients(request.ingredients)
-    green_ingredients = eco_data.get("green_search_list", request.ingredients)
     
-    original_total = eco_data.get("total_kg_co2", 0.0)
+    # 2. Search for recipes using the 'green search list'
+    raw_recipes = spoonacular_client.get_recipes_by_ingredients(eco_data["green_search_list"])
     
-    raw_recipes = spoonacular_client.get_recipes_by_ingredients(green_ingredients)
+    # 3. Enrich with Instructions, Macros, and Charts (AI Mode)
+    final_recipes = agent_service.enrich_recipes_with_ai(raw_recipes)
     
-    scored_recipes = agent_service.estimate_recipe_emissions(raw_recipes, original_total)
-    
-    return schemas.DiscoveryResponse(
-        total_kg_co2=original_total, # Use the variable here
-        audit_breakdown=eco_data.get("audit_breakdown", []),
-        recipe_ideas=scored_recipes
-    )
+    return {
+        "total_kg_co2": eco_data["total_kg_co2"],
+        "audit_breakdown": eco_data["audit_breakdown"],
+        "recipe_ideas": final_recipes
+    }

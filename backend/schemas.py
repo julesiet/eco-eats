@@ -9,7 +9,7 @@ Internal Logic: It doesn't "do" math; it performs a Type Check. It ensures kg_co
 Output: A Validated Data Class. If the data is wrong, it stops the flow before a crash happens.
 """
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class IngredientRequest(BaseModel):
     ingredients: List[str]
@@ -18,12 +18,21 @@ class IngredientAudit(BaseModel):
     name: str
     kg_co2: float
 
+class ChartData(BaseModel):
+    name: str
+    value: float
+
 class RecipeIdea(BaseModel):
     id: int
     title: str
     image_url: str
-    estimated_co2: float  
-    swap_note: str        
+    estimated_co2: float
+    swap_note: str
+    instructions: List[str]
+    prep_time: int
+    cook_time: int
+    co2_split: List[ChartData]
+    macros: List[ChartData]
 
 class DiscoveryResponse(BaseModel):
     total_kg_co2: float
