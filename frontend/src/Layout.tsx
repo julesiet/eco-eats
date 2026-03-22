@@ -53,7 +53,7 @@ const Layout = () => {
               className="flex items-center gap-4 rounded-xl px-3 py-3 text-white hover:bg-olive/20 transition"
             >
               <span className="text-2xl w-8 text-center">▣</span>
-              {isOpen && <span className="text-lg">My Fridge</span>}
+              {isOpen && <span className="text-lg">The Fridge</span>}
             </Link>
           </nav>
 

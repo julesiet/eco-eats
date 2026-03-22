@@ -1,47 +1,71 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Citizens';
+  src: url('./assets/CitizenSans-Public.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Barnaby';
+  src: url('./assets/CSBarnabyDrawn-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@theme {
+  --animate-wobble: wobble 2s ease-in-out infinite;
+
+  @keyframes wobble {
+    0%, 100% { transform: rotate(-10deg) scale(1); }
+    50% { transform: rotate(10deg) scale(1.1); }
+  }
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #ffffff;
-  --border: #ffffff;
-  --code-bg: #f4f3ec;
   --accent: #4f3118;
-  /* --accent-bg: #; */
   --accent-border: #8fa045;
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Default Font Variables */
+  --sans: 'Citizens', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Citizens', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
+  /* Apply to Webapp */
   font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-
-  @font-face {
-    font-family: 'Citizens';
-    src: url('./assets/CitizenSans-Public.otf') format('otf')
-  
-  }
 }
 
 @theme {
-  /*--color-*: initial;*/
   --color-olive: #8fa045;
   --color-wood: #4f3118;
   --color-offblack: #221b10;
   
+  /* Existing default font */
+  --font-sans: var(--sans);
+
+  /* NEW: Add Barnaby here */
+  --font-barnaby: 'Barnaby', serif; 
+}
+
+@theme {
+  --animate-spin-once: spin-once 0.6s ease-in-out;
+
+  @keyframes spin-once {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+/* This ensures the animation only runs when hovered */
+.hover-spin:hover {
+  animation: var(--animate-spin-once);
 }

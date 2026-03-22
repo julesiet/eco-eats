@@ -33,7 +33,7 @@ const RecipeModal = ({ recipe, onClose }: { recipe: RecipeIdea; onClose: () => v
         <div className="flex flex-col md:flex-row">
           {/* Left Side: Instructions */}
           <div className="md:w-3/5 pr-0 md:pr-8 border-b md:border-b-0 md:border-r border-gray-200">
-            <h2 className="text-4xl font-serif underline decoration-2 uppercase tracking-wide mb-6 text-offblack">{recipe.title}</h2>
+            <h2 className="text-4xl font-barnaby underline decoration-2 uppercase tracking-wide mb-6 text-offblack">{recipe.title}</h2>
             <div className="flex gap-4 mb-8 text-xs font-bold text-gray-500 uppercase">
               <span>Prep: {recipe.prep_time}m</span>
               <span>Cook: {recipe.cook_time}m</span>

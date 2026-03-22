@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RecipeCard from './RecipeCard';
 import RecipeModal from './RecipeModal';
+import Cat from './assets/catonly.png';
+import RecipeCarousel from './RecipeCarousel';
 
 interface ChartData { name: string; value: number; }
 interface IngredientAudit { name: string; kg_co2: number; }
@@ -30,6 +33,8 @@ function App() {
   const [results, setResults] = useState<DiscoveryResponse | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeIdea | null>(null);
 
+  const navigate = useNavigate();
+
   const handleAddIngredient = () => {
     if (ingredientInput.trim() !== '') {
       setIngredientsList([...ingredientsList, ingredientInput.trim().toLowerCase()]);
@@ -47,8 +52,11 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ingredients: ingredientsList }),
       });
-      const data: DiscoveryResponse = await response.json();
-      setResults(data);
+      const data = await response.json();
+      
+      // Navigate to the new page and pass the data through state
+      navigate('/recipes', { state: { results: data } });
+      
     } catch (err) {
       setError('Failed to connect to backend.');
     } finally {
@@ -61,8 +69,8 @@ function App() {
       <div className={`py-12 px-4 sm:px-6 lg:px-8 transition-all duration-500 ${selectedRecipe ? 'blur-md brightness-90' : ''}`}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-extrabold text-olive tracking-tight sm:text-5xl">🌍 My Fridge</h1>
-            <p className="mt-4 text-lg text-white/70">Audit your ingredients and find greener alternatives.</p>
+            <h1 className="text-4xl font-barnaby text-olive tracking-tight sm:text-5xl">🌍 The Fridge</h1>
+            <p className="mt-4 text-2xl text-white/70">Welcome to the EcoEater HQ. Enter in your desired ingredients (and weights of said ingredients) and see what recipes you can create!</p>
           </div>
 
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mb-10 text-offblack">
@@ -73,7 +81,7 @@ function App() {
                 value={ingredientInput}
                 onChange={(e) => setIngredientInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddIngredient()}
-                placeholder="Add ingredient..."
+                placeholder="Add any ingredients..."
               />
               <button 
                 onClick={handleAddIngredient}
@@ -92,16 +100,28 @@ function App() {
               ))}
             </div>
 
-            <button 
-              onClick={handleAnalyze}
-              disabled={loading || ingredientsList.length === 0}
-              className={`mt-8 w-full py-4 rounded-xl text-xl font-bold text-white shadow-lg transition-all ${
-                loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-wood hover:scale-[1.02] cursor-pointer'
-              }`}
-            >
-              {loading ? 'Calculating...' : 'Analyze My Fridge'}
-            </button>
+           
+          <button 
+            onClick={handleAnalyze}
+            disabled={loading || ingredientsList.length === 0}
+            className={`mt-8 w-full py-4 rounded-xl text-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-3 ${
+              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-wood hover:scale-[1.02] cursor-pointer'
+            }`}
+          >
+            {loading ? (
+              <>
+                <img src={Cat} className="h-8 w-8 animate-wobble" />
+                Checking...
+              </>
+            ) : (
+              'Check The Fridge'
+            )}
+          </button>
           </div>
+
+          {!results && (
+            <RecipeCarousel />
+          )}
 
           {results && (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
