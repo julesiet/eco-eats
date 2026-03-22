@@ -33,11 +33,11 @@ function Home() {
           {/* Left Side: Text Content */}
           <div className="md:w-2/3">
             <p className="text-sm uppercase tracking-[0.25em] text-olive">
-              Eco-Eats
+              EcoEats
             </p>
             {/* Note: If you want to use your Barnaby font here like in the screenshot, add font-barnaby to this h1! */}
             <h1 className="mt-3 text-4xl md:text-6xl font-barnaby leading-tight text-wood">
-              Welcome to your (future) sustainable kitchen!
+              Welcome to your (future) eco-kitchen!
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-offblack/70">
               We are EcoEats! This web app is designed to help you eat smarter,
@@ -80,6 +80,13 @@ function Home() {
           >
             Go to The Fridge
           </Link>
+
+          <Link 
+            to="/pantry"
+            className="rounded-xl bg-wood px-6 py-3 text-white font-semibold hover:bg-wood/70 transition"
+            >
+              Visit your Pantry
+            </Link>
         </div>
       </div>
     </div>

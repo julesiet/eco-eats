@@ -24,7 +24,7 @@ export default function RecipeCarousel() {
   return (
     <div className="mt-8 w-full max-w-4xl mx-auto overflow-hidden">
       <p className="text-center text-white font-bold uppercase tracking-widest text-sm mb-4">
-        ✨ Check out some of our curated recipes! ✨
+         Check out some of our curated recipes!
       </p>
       
       <div className="relative h-28 bg-white/10 border border-white/30 rounded-2xl flex items-center justify-center shadow-inner">
