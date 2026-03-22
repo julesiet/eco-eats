@@ -7,7 +7,14 @@ import RecipeCarousel from './RecipeCarousel';
 
 interface ChartData { name: string; value: number; }
 interface IngredientAudit { name: string; kg_co2: number; }
-interface RecipeIdea {
+
+interface IngredientDetail {
+  name: string;
+  amount: number;
+  unit: string;
+}
+
+export interface RecipeIdea {
   id: number;
   title: string;
   image_url: string;
@@ -18,34 +25,51 @@ interface RecipeIdea {
   cook_time: number;
   co2_split: ChartData[];
   macros: ChartData[];
+  // NEW: Field for ingredients inferred by your backend AI
+  inferred_ingredients: IngredientDetail[]; 
+  // Existing enriched fields from Spoonacular
+  extendedIngredients?: IngredientDetail[];
+  calories?: number;
+  servings?: number;
+  servingWeight?: string; 
 }
+
 interface DiscoveryResponse {
   total_kg_co2: number;
   audit_breakdown: IngredientAudit[];
   recipe_ideas: RecipeIdea[];
 }
 
-const SPOONACULAR_API_KEY = import.meta.env.VITE_SPOONACULAR_API_KEY; // Replace with your key
+const SPOONACULAR_API_KEY = import.meta.env.VITE_SPOONACULAR_API_KEY;
 
 function App() {
   const [ingredientInput, setIngredientInput] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]); // For autocomplete
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [ingredientsList, setIngredientsList] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState<DiscoveryResponse | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeIdea | null>(null);
+  
+  // Toggle for Autocomplete to save credits
+  const [isAutocompleteEnabled, setIsAutocompleteEnabled] = useState(false);
 
   const { setHistory } = useContext(PantryContext);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isAutocompleteEnabled) {
+      setSuggestions([]);
+      return;
+    }
+
     const delayDebounceFn = setTimeout(async () => {
       if (ingredientInput.length > 1) {
         try {
           const res = await fetch(
             `https://api.spoonacular.com/food/ingredients/autocomplete?query=${ingredientInput}&number=5&apiKey=${SPOONACULAR_API_KEY}`
           );
+          if (!res.ok) throw new Error("API Limit reached");
           const data = await res.json();
           setSuggestions(data.map((item: any) => item.name));
         } catch (err) {
@@ -54,10 +78,10 @@ function App() {
       } else {
         setSuggestions([]);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [ingredientInput]);
+  }, [ingredientInput, isAutocompleteEnabled]);
 
   const handleAddIngredient = (name?: string) => {
     const finalName = (name || ingredientInput).trim().toLowerCase();
@@ -79,11 +103,46 @@ function App() {
         body: JSON.stringify({ ingredients: ingredientsList }),
       });
       const data = await response.json();
+
+      const enrichedRecipes = await Promise.all(
+        data.recipe_ideas.map(async (recipe: RecipeIdea) => {
+          try {
+            const detailsRes = await fetch(
+              `https://api.spoonacular.com/recipes/${recipe.id}/information?includeNutrition=true&apiKey=${SPOONACULAR_API_KEY}`
+            );
+
+            if (!detailsRes.ok) throw new Error(`API error: ${detailsRes.status}`);
+
+            const details = await detailsRes.json();
+            const nutrients = details.nutrition?.nutrients || [];
+            const weight = details.nutrition?.weightPerServing;
+            
+            return {
+              ...recipe,
+              servings: details.servings || 1,
+              servingWeight: weight ? `${weight.amount}${weight.unit}` : undefined,
+              extendedIngredients: (details.extendedIngredients || []).map((ing: any) => ({
+                name: ing.name,
+                amount: ing.amount,
+                unit: ing.unit,
+              })),
+              calories: nutrients.find((n: any) => n.name === "Calories")?.amount,
+              macros: [
+                { name: 'Protein', value: nutrients.find((n: any) => n.name === "Protein")?.amount || 0 },
+                { name: 'Fat', value: nutrients.find((n: any) => n.name === "Fat")?.amount || 0 },
+                { name: 'Carbs', value: nutrients.find((n: any) => n.name === "Carbohydrates")?.amount || 0 },
+              ]
+            };
+          } catch (e) {
+            console.error("Enrichment failed for recipe", recipe.id, e);
+            return recipe; 
+          }
+        })
+      );
+
       const timestamp = new Date().toLocaleTimeString();
-      setHistory((prev: any) => [{ timestamp, recipes: data.recipe_ideas }, ...prev]);
-      
-      // Navigate to the new page and pass the data through state
-      navigate('/recipes', { state: { results: data } });
+      setHistory((prev: any) => [{ timestamp, recipes: enrichedRecipes }, ...prev]);
+      navigate('/recipes', { state: { results: { ...data, recipe_ideas: enrichedRecipes } } });
       
     } catch (err) {
       setError('Failed to connect to backend.');
@@ -98,11 +157,22 @@ function App() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-barnaby text-olive tracking-tight sm:text-5xl">🌎 The World's Fridge </h1>
-            <p className="mt-4 text-2xl text-white/70">Welcome to the EcoEater HQ. Enter in your desired ingredients and see what recipes you can create!</p>
+            <p className="mt-4 text-2xl text-white/70">Enter your ingredients and see what recipes you can create!</p>
           </div>
 
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mb-10 text-offblack relative">
-            {/* Input and Add Button */}
+            <div className="flex justify-end mb-4">
+              <button 
+                onClick={() => setIsAutocompleteEnabled(!isAutocompleteEnabled)}
+                className={`text-xs font-bold px-3 py-1 rounded-full transition-colors flex items-center gap-2 ${
+                  isAutocompleteEnabled ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${isAutocompleteEnabled ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                Autocomplete: {isAutocompleteEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3 relative">
               <input 
                 type="text" 
@@ -110,24 +180,16 @@ function App() {
                 value={ingredientInput}
                 onChange={(e) => setIngredientInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddIngredient()}
-                placeholder="Add any ingredients..."
+                placeholder={isAutocompleteEnabled ? "Add any ingredients..." : "Type ingredient and press Enter..."}
               />
-              <button 
-                onClick={() => handleAddIngredient()}
-                className="px-6 py-3 rounded-lg text-white bg-olive font-medium hover:bg-olive/90 transition-colors"
-              >
+              <button onClick={() => handleAddIngredient()} className="px-6 py-3 rounded-lg text-white bg-olive font-medium hover:bg-olive/90 transition-colors">
                 Add Item
               </button>
 
-              {/* Autocomplete Dropdown */}
-              {suggestions.length > 0 && (
+              {isAutocompleteEnabled && suggestions.length > 0 && (
                 <ul className="absolute z-50 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-2xl">
                   {suggestions.map((s, i) => (
-                    <li 
-                      key={i}
-                      onClick={() => handleAddIngredient(s)}
-                      className="px-4 py-3 hover:bg-olive hover:text-white cursor-pointer transition-colors border-b border-gray-50 last:border-none capitalize"
-                    >
+                    <li key={i} onClick={() => handleAddIngredient(s)} className="px-4 py-3 hover:bg-olive hover:text-white cursor-pointer transition-colors border-b border-gray-50 last:border-none capitalize">
                       {s}
                     </li>
                   ))}
@@ -135,22 +197,15 @@ function App() {
               )}
             </div>
 
-            {/* Ingredient Tags */}
             <div className="mt-6 flex flex-wrap gap-2">
               {ingredientsList.map((ing, idx) => (
                 <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-olive/20 text-olive">
                   {ing}
-                  <button 
-                    onClick={() => setIngredientsList(ingredientsList.filter((_, i) => i !== idx))} 
-                    className="ml-2 font-bold hover:text-red-500"
-                  >
-                    ×
-                  </button>
+                  <button onClick={() => setIngredientsList(ingredientsList.filter((_, i) => i !== idx))} className="ml-2 font-bold hover:text-red-500">×</button>
                 </span>
               ))}
             </div>
 
-            {/* Analyze Button with Cabbage Cat Loader */}
             <button 
               onClick={handleAnalyze}
               disabled={loading || ingredientsList.length === 0}
@@ -169,10 +224,7 @@ function App() {
             </button>
           </div>
 
-          {/* Carousel or Results */}
-          {!results ? (
-            <RecipeCarousel />
-          ) : (
+          {!results ? <RecipeCarousel /> : (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
               <section className="bg-white rounded-2xl shadow-md overflow-hidden text-offblack">
                 <div className="bg-red-50 px-6 py-4 border-b border-red-100">
@@ -187,7 +239,6 @@ function App() {
           )}
         </div>
       </div>
-
       {selectedRecipe && <RecipeModal recipe={selectedRecipe} onClose={() => setSelectedRecipe(null)} />}
     </div>
   );

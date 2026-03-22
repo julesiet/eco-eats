@@ -37,24 +37,29 @@ def audit_ingredients(ingredients: list[str]) -> dict:
     Return ONLY JSON:
     {"total_kg_co2": float, "audit_breakdown": [{"name": "string", "kg_co2": float}], "green_search_list": ["string"]}
     """
+    
     response = client.chat.completions.create(
         model="asi1-mini",
-        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": f"Ingredients: {ingredients}"}],
+        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": str(ingredients)}],
         response_format={"type": "json_object"}
     )
     return json.loads(response.choices[0].message.content)
 
 def enrich_recipes_with_ai(recipes: list[dict]) -> list[dict]:
-    """Generates instructions, macros, and CO2 breakdown for the dashboard."""
+    if not ASI_KEY: return recipes
+    
     titles = [r["title"] for r in recipes]
     
+    # UPDATED PROMPT: Added inferred_ingredients
     system_prompt = """
     For each recipe title, provide:
     1. instructions (list of strings)
     2. prep_time & cook_time (minutes)
     3. co2_split (list of {name: "ingredient", value: kg_co2})
     4. macros (list of {name: "Protein/Carbs/Fat", value: grams})
-    Return ONLY JSON: {"estimates": [{"title": "string", "instructions": [], "prep_time": 0, "cook_time": 0, "co2_split": [], "macros": []}]}
+    5. inferred_ingredients (list of {name: "string", amount: float, unit: "string"})
+    
+    Return ONLY JSON: {"estimates": [{"title": "string", "instructions": [], "prep_time": 0, "cook_time": 0, "co2_split": [], "macros": [], "inferred_ingredients": []}]}
     """
     
     try:
@@ -74,9 +79,11 @@ def enrich_recipes_with_ai(recipes: list[dict]) -> list[dict]:
                     "cook_time": match["cook_time"],
                     "co2_split": match["co2_split"],
                     "macros": match["macros"],
+                    "inferred_ingredients": match["inferred_ingredients"], # NEW
                     "estimated_co2": sum(item["value"] for item in match["co2_split"]),
-                    "swap_note": "A climate-positive choice!"
+                    "swap_note": "AI optimized for lower carbon footprint."
                 })
-        return recipes
-    except:
-        return recipes
+    except Exception as e:
+        print(f"AI Enrichment Error: {e}")
+        
+    return recipes

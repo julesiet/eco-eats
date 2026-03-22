@@ -22,6 +22,12 @@ class ChartData(BaseModel):
     name: str
     value: float
 
+# NEW: Define the structure for inferred ingredients
+class IngredientDetail(BaseModel):
+    name: str
+    amount: float
+    unit: str
+
 class RecipeIdea(BaseModel):
     id: int
     title: str
@@ -33,6 +39,8 @@ class RecipeIdea(BaseModel):
     cook_time: int
     co2_split: List[ChartData]
     macros: List[ChartData]
+    # NEW: Add this field so the backend can pass the AI's guess
+    inferred_ingredients: List[IngredientDetail]
 
 class DiscoveryResponse(BaseModel):
     total_kg_co2: float
